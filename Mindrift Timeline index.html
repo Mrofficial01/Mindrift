@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MINDRIFT: The Timeline Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-deep: #050617;
+      --bg-indigo: #0A0E27;
+      --bg-midnight: #11152F;
+      --cosmic-purple: #2D1B3D;
+      --accent-cyan: #00D9FF;
+      --accent-purple: #A445FF;
+      --accent-gold: #FFB800;
+      --accent-red: #FF2E63;
+      --accent-green: #00FF88;
+      --text-main: #E5ECFF;
+      --text-soft: #9DA8D8;
+      --glass-bg: rgba(10, 14, 39, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --shadow-strong: 0 18px 45px rgba(0, 0, 0, 0.85);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --nav-height: 72px;
+      --transition-fast: 0.2s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #1A1F3A 0, #050617 55%, #02030A 100%);
+      color: var(--text-main);
+      font-family: 'Rajdhani', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      position: relative;
+    }
+
+    /* Animated starfield background */
+    .starfield, .nebula {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -2;
+      overflow: hidden;
+    }
+
+    .starfield::before,
+    .starfield::after {
+      content: "";
+      position: absolute;
+      inset: -50%;
+      background-image:
+        radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1.5px 1.5px at 80% 70%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 60% 20%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 2px at 10% 80%, rgba(255,255,255,0.75), transparent);
+      opacity: 0.4;
+      animation: driftStars 60s linear infinite;
+    }
+
+    .starfield::after {
+      animation-duration: 90s;
+      opacity: 0.25;
+      transform: scale(1.2);
+    }
+
+    .nebula::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(164, 69, 255, 0.25), transparent 60%),
+        radial-gradient(circle at 80% 10%, rgba(0, 217, 255, 0.20), transparent 55%),
+        radial-gradient(circle at 50% 80%, rgba(255, 184, 0, 0.15), transparent 60%);
+      mix-blend-mode: screen;
+      filter: blur(8px);
+      opacity: 0.6;
+      animation: nebulaDrift 80s ease-in-out infinite alternate;
+    }
+
+    @keyframes driftStars {
+      0% { transform: translate3d(0,0,0) scale(1); }
+      50% { transform: translate3d(-3%, -6%, 0) scale(1.05); }
+      100% { transform: translate3d(4%, 8%, 0) scale(1.02); }
+    }
+
+    @keyframes nebulaDrift {
+      0% { transform: translate3d(0,0,0) scale(1); }
+      50% { transform: translate3d(-4%, 2%, 0) scale(1.07); }
+      100% { transform: translate3d(3%, -3%, 0) scale(1.04); }
+    }
+
+    /* App shell */
+    .app-shell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 8px 10px 0;
+    }
+
+    /* Top brand strip */
+    .brand-strip {
+      position: relative;
+      margin: 4px auto 8px;
+      padding: 8px 14px 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.24), rgba(164, 69, 255, 0.20));
+      box-shadow: 0 0 18px rgba(0, 217, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .brand-strip-inner {
+      position: relative;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, rgba(10, 14, 39, 0.92), rgba(17, 21, 63, 0.92));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .brand-strip-title {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      text-shadow: 0 0 8px rgba(255, 184, 0, 0.7);
+    }
+
+    .brand-strip-main {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      font-size: 0.78rem;
+      margin-top: 2px;
+      color: #F5F7FF;
+    }
+
+    .brand-strip-sub {
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-top: 2px;
+    }
+
+    /* Watermark during gameplay */
+    .brand-watermark {
+      position: fixed;
+      top: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      opacity: 0.18;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      color: rgba(255, 255, 255, 0.16);
+      font-size: 0.6rem;
+      z-index: -1;
+    }
+
+    .brand-watermark span {
+      display: block;
+    }
+
+    /* Main content area */
+    .content {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      margin-bottom: calc(var(--nav-height) + 4px);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      padding: 8px 4px 6px;
+      display: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Glass panels */
+    .glass-panel {
+      background: radial-gradient(circle at top left, rgba(164, 69, 255, 0.20), transparent 55%),
+                  radial-gradient(circle at bottom right, rgba(0, 217, 255, 0.16), transparent 55%),
+                  var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-strong);
+      border-radius: var(--radius-xl);
+      padding: 16px 14px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-panel::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: conic-gradient(from 140deg, rgba(255,255,255,0.16), transparent, transparent, rgba(255,255,255,0.05), transparent);
+      opacity: 0.28;
+      mix-blend-mode: soft-light;
+      filter: blur(18px);
+      pointer-events: none;
+    }
+
+    .glass-panel-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Typography */
+    .heading-orbitron {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      color: var(--accent-cyan);
+      margin-bottom: 4px;
+    }
+
+    .h-title {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      color: #F7F7FF;
+    }
+
+    .subline {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .body-text {
+      font-size: 0.86rem;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px 4px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, rgba(0, 217, 255, 0.18), rgba(164, 69, 255, 0.18));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #00FFAA 0, #00FF88 55%, #009966 100%);
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+    }
+
+    .tagline {
+      margin: 4px 0 10px;
+      font-size: 0.84rem;
+      color: var(--text-main);
+      opacity: 0.9;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 4px 0 10px;
+    }
+
+    .chip {
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(17, 21, 63, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), opacity 0.12s ease-out;
+      outline: none;
+      color: #02030A;
+      background: linear-gradient(135deg, #00D9FF, #A445FF);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 217, 255, 0.6);
+    }
+
+    .btn span.icon {
+      font-size: 1.1rem;
+    }
+
+    .btn:active {
+      transform: scale(0.96) translateY(1px);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.9);
+    }
+
+    .btn-secondary {
+      background: rgba(17, 21, 63, 0.96);
+      color: var(--text-main);
+      border: 1px solid rgba(0, 217, 255, 0.38);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.75);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-soft);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: none;
+    }
+
+    .btn-small {
+      padding: 7px 12px;
+      font-size: 0.78rem;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #FF2E63, #A445FF);
+      color: #1A0711;
+      box-shadow: 0 0 16px rgba(255, 46, 99, 0.7);
+    }
+
+    .btn[disabled] {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    /* Bottom navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 520px;
+      height: var(--nav-height);
+      border-radius: 999px;
+      padding: 6px 6px 8px;
+      background: radial-gradient(circle at top left, rgba(0, 217, 255, 0.20), transparent 60%),
+                  radial-gradient(circle at top right, rgba(164, 69, 255, 0.18), transparent 60%),
+                  rgba(1, 2, 12, 0.96);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .bottom-nav-inner {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(120deg, rgba(12, 15, 50, 0.96), rgba(12, 7, 36, 0.96));
+      overflow: hidden;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .nav-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      padding: 4px 4px;
+      border-radius: 999px;
+      transition: background var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+      color: var(--text-soft);
+    }
+
+    .nav-icon {
+      font-size: 1.2rem;
+      margin-bottom: 2px;
+    }
+
+    .nav-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .nav-item.active .nav-pill {
+      background: radial-gradient(circle at top, rgba(0, 217, 255, 0.55), transparent 65%);
+      color: #F5FCFF;
+      transform: translateY(-2px);
+      box-shadow: 0 0 16px rgba(0, 217, 255, 0.6);
+    }
+
+    /* HOME SCREEN */
+    .home-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hero-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .mode-pill {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+    }
+
+    .mode-pill span {
+      color: var(--accent-cyan);
+    }
+
+    .lore-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1.2fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .lore-text {
+      font-size: 0.8rem;
+      color: var(--text-main);
+    }
+
+    .lore-bullets {
+      list-style: none;
+      padding: 0;
+      margin: 6px 0 0;
+      font-size: 0.8rem;
+      color: var(--text-main);
+    }
+
+    .lore-bullets li {
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lore-bullets span.dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 6px rgba(0, 217, 255, 0.6);
+    }
+
+    .orbit-visual {
+      position: relative;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at 20% 0, rgba(0, 217, 255, 0.22), transparent 60%),
+                  radial-gradient(circle at 80% 100%, rgba(164, 69, 255, 0.18), transparent 60%),
+                  rgba(5, 7, 25, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      height: 120px;
+      overflow: hidden;
+    }
+
+    .orbit-core {
+      position: absolute;
+      left: 50%;
+      top: 57%;
+      width: 52px;
+      height: 52px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, #FFB800 0, #FFB800 30%, #2D1B3D 100%);
+      box-shadow: 0 0 22px rgba(255, 184, 0, 0.9);
+    }
+
+    .orbit-core-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #1A0711;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      text-align: center;
+      padding: 0 4px;
+    }
+
+    .orbit-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px dashed rgba(0, 217, 255, 0.55);
+      inset: 12px 14px;
+      animation: orbitPulse 12s linear infinite;
+      opacity: 0.66;
+    }
+
+    .orbit-node {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00D9FF 0, #A445FF 100%);
+      box-shadow: 0 0 14px rgba(0, 217, 255, 0.8);
+      animation: orbitNode 12s linear infinite;
+    }
+
+    .orbit-node:nth-child(2) {
+      top: 8%;
+      left: 16%;
+      animation-duration: 15s;
+    }
+
+    .orbit-node:nth-child(3) {
+      bottom: 6%;
+      right: 14%;
+      animation-duration: 11s;
+    }
+
+    .orbit-node:nth-child(4) {
+      top: 14%;
+      right: 22%;
+      width: 10px;
+      height: 10px;
+      background: radial-gradient(circle, #FF2E63 0, #A445FF 100%);
+      animation-duration: 17s;
+    }
+
+    @keyframes orbitPulse {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.04); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @keyframes orbitNode {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+      100% { transform: translateY(0); }
+    }
+
+    .home-cta-area {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.72rem;
+      color: var(--text-soft);
+    }
+
+    .meta-label {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* GAME / LOBBY SCREEN */
+    .game-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+
+    .room-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .room-code-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .room-code-value {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.94rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(3, 9, 29, 0.9);
+      border: 1px solid rgba(0, 217, 255, 0.55);
+      box-shadow: 0 0 14px rgba(0, 217, 255, 0.65);
+    }
+
+    .friends-panel {
+      margin-top: 6px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: radial-gradient(circle at top, rgba(0, 217, 255, 0.16), transparent 65%),
+                  rgba(5, 7, 29, 0.96);
+      padding: 10px 10px 8px;
+    }
+
+    .friends-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+    }
+
+    .friends-count {
+      color: var(--accent-green);
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .friend-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--text-main);
+    }
+
+    .friend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(12, 16, 50, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .friend-meta {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .role-pill {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .role-loyal {
+      background: rgba(0, 255, 136, 0.16);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 255, 136, 0.55);
+    }
+
+    .role-thief {
+      background: rgba(255, 46, 99, 0.14);
+      color: var(--accent-red);
+      border: 1px solid rgba(255, 46, 99, 0.6);
+    }
+
+    .role-oracle {
+      background: rgba(255, 184, 0, 0.14);
+      color: var(--accent-gold);
+      border: 1px solid rgba(255, 184, 0, 0.6);
+    }
+
+    .game-cta-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .phase-banner {
+      margin-top: 4px;
+      border-radius: var(--radius-lg);
+      padding: 8px 10px;
+      background: linear-gradient(120deg, rgba(0, 217, 255, 0.22), rgba(164, 69, 255, 0.22));
+      border: 1px solid rgba(0, 217, 255, 0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .phase-label {
+      font-size: 0.76rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .timer-pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(1, 3, 20, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-size: 0.76rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .timer-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #00FF88 0, #009966 80%);
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+      animation: pulseDot 1.4s ease-in-out infinite;
+    }
+
+    .timer-seconds {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.72rem;
+    }
+
+    @keyframes pulseDot {
+      0% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+
+    /* Gameplay area */
+    .gameplay-shell {
+      margin-top: 6px;
+      border-radius: var(--radius-xl);
+      padding: 10px 10px 8px;
+      background: radial-gradient(circle at 0 0, rgba(0, 217, 255, 0.22), transparent 60%),
+                  radial-gradient(circle at 100% 100%, rgba(164, 69, 255, 0.18), transparent 60%),
+                  rgba(5, 7, 29, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .timeline-track {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 2px 8px;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+    }
+
+    .timeline-track::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, transparent, rgba(0, 217, 255, 0.45), transparent);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .memory-card {
+      position: relative;
+      min-width: 132px;
+      max-width: 132px;
+      border-radius: 16px;
+      padding: 8px 8px 10px;
+      background: radial-gradient(circle at 20% 0, rgba(0, 217, 255, 0.32), transparent 65%),
+                  radial-gradient(circle at 80% 100%, rgba(164, 69, 255, 0.28), transparent 65%),
+                  rgba(3, 6, 23, 0.98);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.85);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .memory-card.anchor {
+      border-color: rgba(255, 184, 0, 0.8);
+      box-shadow: 0 0 20px rgba(255, 184, 0, 0.8);
+    }
+
+    .memory-card.static {
+      border-color: rgba(255, 46, 99, 0.9);
+      box-shadow: 0 0 20px rgba(255, 46, 99, 0.7);
+    }
+
+    .memory-card.real {
+      border-color: rgba(0, 255, 136, 0.85);
+      box-shadow: 0 0 18px rgba(0, 255, 136, 0.7);
+    }
+
+    .memory-meta {
+      font-size: 0.64rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      color: var(--text-soft);
+    }
+
+    .memory-role {
+      font-size: 0.62rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(1, 3, 20, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .memory-text {
+      font-size: 0.76rem;
+      line-height: 1.3;
+      color: var(--text-main);
+    }
+
+    .memory-tag {
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      opacity: 0.85;
+    }
+
+    .memory-tag-static {
+      color: var(--accent-red);
+    }
+
+    .memory-tag-real {
+      color: var(--accent-green);
+    }
+
+    .memory-tag-anchor {
+      color: var(--accent-gold);
+    }
+
+    .input-panel {
+      margin-top: 4px;
+      border-radius: var(--radius-lg);
+      padding: 6px 8px 8px;
+      background: rgba(7, 8, 26, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+      color: var(--text-soft);
+    }
+
+    .input-label-row span {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .card-hand {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .mini-card {
+      flex: 1;
+      border-radius: 12px;
+      padding: 6px 5px 7px;
+      background: radial-gradient(circle at 20% 0, rgba(0, 217, 255, 0.26), transparent 60%),
+                  radial-gradient(circle at 80% 100%, rgba(164, 69, 255, 0.22), transparent 60%),
+                  rgba(3, 6, 24, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 0.68rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .mini-card-title {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent-cyan);
+    }
+
+    .mini-card-desc {
+      font-size: 0.64rem;
+      color: var(--text-main);
+      opacity: 0.85;
+    }
+
+    .mini-card.selected {
+      border-color: rgba(0, 255, 136, 0.85);
+      box-shadow: 0 0 14px rgba(0, 255, 136, 0.7);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .mini-card.disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    textarea.memory-input {
+      width: 100%;
+      min-height: 64px;
+      resize: none;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: radial-gradient(circle at 0 0, rgba(0, 217, 255, 0.14), transparent 50%),
+                  rgba(3, 5, 22, 0.9);
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: 0.8rem;
+      outline: none;
+    }
+
+    textarea.memory-input::placeholder {
+      color: rgba(157, 168, 216, 0.75);
+    }
+
+    .input-footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .rewind-btn {
+      font-size: 0.74rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 255, 255, 0.32);
+      background: rgba(15, 5, 16, 0.96);
+      color: var(--accent-purple);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    }
+
+    .rewind-btn.used {
+      opacity: 0.4;
+      cursor: default;
+      border-style: solid;
+      border-color: rgba(255, 255, 255, 0.18);
+      color: var(--text-soft);
+    }
+
+    .rewind-btn span.icon {
+      font-size: 0.9rem;
+    }
+
+    .phase-action-btn {
+      flex: 1;
+    }
+
+    /* REVELATION PHASE */
+    .revelation-panel {
+      margin-top: 4px;
+      border-radius: var(--radius-lg);
+      padding: 8px 8px 6px;
+      background: rgba(6, 4, 22, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-size: 0.76rem;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .revelation-panel.visible {
+      display: flex;
+    }
+
+    .revelation-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag-toggle {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(1, 3, 20, 0.96);
+      cursor: pointer;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tag-toggle.active-real {
+      border-color: rgba(0, 255, 136, 0.9);
+      color: var(--accent-green);
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
+    }
+
+    .tag-toggle.active-static {
+      border-color: rgba(255, 46, 99, 0.9);
+      color: var(--accent-red);
+      box-shadow: 0 0 12px rgba(255, 46, 99, 0.7);
+    }
+
+    .guess-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(3, 5, 22, 0.9);
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: 0.8rem;
+      outline: none;
+    }
+
+    .guess-input::placeholder {
+      color: rgba(157, 168, 216, 0.75);
+    }
+
+    .accusation-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .accusation-select {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(3, 5, 22, 0.9);
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    /* FOUNDER SCREEN */
+    .founder-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .founder-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .avatar-ring {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 0, rgba(255, 184, 0, 0.4), transparent 70%),
+                  radial-gradient(circle at 80% 100%, rgba(0, 217, 255, 0.35), transparent 70%),
+                  #050617;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 0 18px rgba(255, 184, 0, 0.7);
+      overflow: hidden;
+    }
+
+    .avatar-inner {
+      position: absolute;
+      inset: 10%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 0, #FFB800, #A445FF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: #050617;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      letter-spacing: 0.12em;
+    }
+
+    .founder-name {
+      font-size: 0.88rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+      margin-bottom: 4px;
+    }
+
+    .founder-role {
+      font-size: 0.76rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .vision-panel {
+      margin-top: 4px;
+      border-radius: var(--radius-lg);
+      padding: 8px 10px;
+      background: rgba(5, 7, 28, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 0.82rem;
+      color: var(--text-main);
+    }
+
+    .vision-label {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      margin-bottom: 4px;
+    }
+
+    .connect-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .connect-card {
+      flex: 1 1 30%;
+      min-width: 88px;
+      border-radius: var(--radius-md);
+      padding: 7px 8px 8px;
+      background: radial-gradient(circle at 0 0, rgba(0, 217, 255, 0.25), transparent 60%),
+                  rgba(5, 7, 24, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .connect-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8);
+      border-color: rgba(0, 217, 255, 0.7);
+    }
+
+    .connect-icon {
+      font-size: 1rem;
+    }
+
+    .connect-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .investor-panel {
+      margin-top: 4px;
+      border-radius: var(--radius-lg);
+      padding: 8px 10px;
+      background: rgba(6, 4, 22, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 0.8rem;
+      color: var(--text-main);
+    }
+
+    .investor-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .investor-name {
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    .investor-amount {
+      color: var(--accent-gold);
+      font-size: 0.78rem;
+    }
+
+    .cta-footer {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      text-align: center;
+      color: var(--text-soft);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--nav-height) + 18px);
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(3, 6, 22, 0.96);
+      border: 1px solid rgba(0, 255, 136, 0.7);
+      color: var(--accent-green);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+      z-index: 6;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+      pointer-events: auto;
+    }
+
+    /* Utility */
+    .mt-4 { margin-top: 4px; }
+    .mt-6 { margin-top: 6px; }
+    .mt-8 { margin-top: 8px; }
+
+    @media (min-width: 640px) {
+      .brand-strip {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="starfield"></div>
+  <div class="nebula"></div>
+
+  <div class="brand-watermark">
+    <span>YASH VERMA</span>
+    <span>MINDRIFT</span>
+    <span>THE TIMELINE GAME</span>
+  </div>
+
+  <div class="app-shell">
+    <!-- Brand strip -->
+    <header class="brand-strip">
+      <div class="brand-strip-inner">
+        <div class="brand-strip-title"> YASH VERMA PRESENTS </div>
+        <div class="brand-strip-main">MINDRIFT</div>
+        <div class="brand-strip-sub">The Timeline Game</div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="content">
+      <!-- HOME TAB -->
+      <section id="screen-home" class="screen active">
+        <div class="glass-panel">
+          <div class="glass-panel-inner home-layout">
+            <div>
+              <div class="pill">
+                <span class="pill-dot"></span>
+                LIVE PROTOTYPE · COSMIC NOIR
+              </div>
+              <div class="heading-orbitron">MINDRIFT: The Timeline Game</div>
+              <div class="h-title">Where Stories Collide</div>
+              <div class="subline">Your memories. Their lies. One timeline.</div>
+
+              <div class="hero-badge-row">
+                <div class="mode-pill">3–20 PLAYERS · <span>CROSS-PLATFORM</span></div>
+                <div class="chip">Social Deduction</div>
+              </div>
+
+              <p class="tagline">
+                Build a living story with your friends while hidden Memory Thieves quietly corrupt the timeline from the inside.
+              </p>
+
+              <div class="chip-row">
+                <div class="chip">Collaborative Storytelling</div>
+                <div class="chip">Psychological Mind Games</div>
+                <div class="chip">Timeline Manipulation</div>
+              </div>
+            </div>
+
+            <div class="lore-grid">
+              <div>
+                <div class="heading-orbitron">The Living Timeline</div>
+                <p class="lore-text">
+                  Each round, an Anchor sets an emotional scene, players echo with micro-memories, and the group fights to protect the story from hidden Static cards.
+                </p>
+                <ul class="lore-bullets">
+                  <li><span class="dot"></span> No player elimination – everyone plays every round.</li>
+                  <li><span class="dot"></span> Read people, not just rules; tension lives in every accusation.</li>
+                  <li><span class="dot"></span> Rewind, chain memories, and bend roles as paranoia builds.</li>
+                </ul>
+              </div>
+              <div class="orbit-visual">
+                <div class="orbit-core">
+                  <div class="orbit-core-label">Anchor</div>
+                </div>
+                <div class="orbit-ring"></div>
+                <div class="orbit-node"></div>
+                <div class="orbit-node"></div>
+                <div class="orbit-node"></div>
+              </div>
+            </div>
+
+            <div class="home-cta-area">
+              <button id="home-to-game" class="btn btn-full">
+                <span class="icon">▶</span>
+                ENTER THE TIMELINE
+              </button>
+              <div class="meta-row">
+                <div>
+                  <div class="meta-label">Session Length</div>
+                  <div>15–45 minutes · Party-ready</div>
+                </div>
+                <div>
+                  <div class="meta-label">Best With</div>
+                  <div>6–10 Storytellers</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GAME TAB -->
+      <section id="screen-game" class="screen">
+        <div class="game-layout">
+          <div class="glass-panel">
+            <div class="glass-panel-inner">
+              <div class="room-row">
+                <div>
+                  <div class="room-code-label">Room Code</div>
+                  <div id="room-code" class="room-code-value">MDFT-0000</div>
+                </div>
+                <button id="invite-btn" class="btn btn-small btn-secondary">
+                  <span class="icon">⧉</span>
+                  INVITE FRIENDS
+                </button>
+              </div>
+
+              <div class="friends-panel">
+                <div class="friends-header">
+                  <div class="heading-orbitron">Lobby · Echo Cluster</div>
+                  <div class="friends-count">4 / 10 ONLINE</div>
+                </div>
+                <ul class="friend-list">
+                  <li class="friend-item">
+                    <div>
+                      <div>Yash (You)</div>
+                      <div class="friend-meta">Anchor Candidate</div>
+                    </div>
+                    <span class="role-pill role-loyal">Loyal</span>
+                  </li>
+                  <li class="friend-item">
+                    <div>
+                      <div>NovaShade</div>
+                      <div class="friend-meta">Storyteller · Lv. 5</div>
+                    </div>
+                    <span class="role-pill role-loyal">Loyal</span>
+                  </li>
+                  <li class="friend-item">
+                    <div>
+                      <div>StaticMuse</div>
+                      <div class="friend-meta">Suspicion: Medium</div>
+                    </div>
+                    <span class="role-pill role-thief">Mystery</span>
+                  </li>
+                  <li class="friend-item">
+                    <div>
+                      <div>OracleEye</div>
+                      <div class="friend-meta">Reads timelines too well</div>
+                    </div>
+                    <span class="role-pill role-oracle">Oracle?</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="game-cta-row">
+                <button id="start-game-btn" class="btn btn-full">
+                  <span class="icon">🎮</span>
+                  START GAME · BECOME THE ANCHOR
+                </button>
+                <button id="rules-hint-btn" class="btn btn-full btn-ghost">
+                  <span class="icon">📜</span>
+                  ROUND FLOW: ANCHOR → ECHO → REVELATION
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="gameplay-shell">
+            <div class="phase-banner">
+              <div>
+                <div class="phase-label" id="phase-label">Phase · Anchor</div>
+                <div style="font-size:0.76rem; color:var(--text-soft);" id="phase-subtext">
+                  Set the cryptic scene. Hint at the trigger – never name it.
+                </div>
+              </div>
+              <div class="timer-pill">
+                <span class="timer-dot"></span>
+                <span id="phase-timer" class="timer-seconds">20s</span>
+              </div>
+            </div>
+
+            <!-- Timeline Track -->
+            <div id="timeline-track" class="timeline-track">
+              <!-- Cards injected by JS -->
+            </div>
+
+            <!-- Input Deck -->
+            <div class="input-panel">
+              <div class="input-label-row">
+                <span>Memory Input</span>
+                <span id="hand-label">Hand · Pick a card</span>
+              </div>
+
+              <div id="card-hand" class="card-hand">
+                <!-- Mini cards injected by JS -->
+              </div>
+
+              <textarea id="memory-textarea" class="memory-input" maxlength="220"
+                placeholder="Write a 1–2 line memory that fits the current emotional thread..."></textarea>
+
+              <div class="input-footer-row">
+                <button id="rewind-btn" class="rewind-btn">
+                  <span class="icon">⏪</span>
+                  REWIND (x1)
+                </button>
+                <button id="phase-action-btn" class="btn phase-action-btn">
+                  LOCK ANCHOR MEMORY
+                </button>
+              </div>
+            </div>
+
+            <!-- Revelation / Accusation Panel -->
+            <div id="revelation-panel" class="revelation-panel">
+              <div class="vision-label">Revelation Phase</div>
+              <div style="font-size:0.8rem;">
+                Tag cards as REAL or STATIC, guess the hidden trigger, and point your accusation wisely.
+              </div>
+
+              <div class="mt-4" style="font-size:0.76rem; color:var(--text-soft);">Mark the timeline</div>
+              <div id="tag-row" class="revelation-row">
+                <!-- Tag toggles injected -->
+              </div>
+
+              <div class="mt-4" style="font-size:0.76rem; color:var(--text-soft);">Guess the original trigger word</div>
+              <input id="guess-input" class="guess-input" placeholder="e.g., Betrayal, First Love, Lost Treasure..." />
+
+              <div class="mt-4" style="font-size:0.76rem; color:var(--text-soft);">Accuse exactly one player</div>
+              <div class="accusation-row">
+                <select id="accusation-select" class="accusation-select">
+                  <option value="">Choose suspect…</option>
+                  <option value="NovaShade">NovaShade</option>
+                  <option value="StaticMuse">StaticMuse</option>
+                  <option value="OracleEye">OracleEye</option>
+                </select>
+                <button id="submit-revelation-btn" class="btn btn-small btn-secondary">
+                  RESOLVE ROUND
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOUNDER TAB -->
+      <section id="screen-founder" class="screen">
+        <div class="glass-panel">
+          <div class="glass-panel-inner founder-layout">
+            <div class="heading-orbitron">Studio · Founder Vault</div>
+            <div class="founder-header">
+              <div class="avatar-ring">
+                <div class="avatar-inner">YV</div>
+              </div>
+              <div>
+                <div class="founder-name">YASH VERMA (Founder &amp; CEO)</div>
+                <div class="founder-role">Mindrift Interactive · Cosmic Social Games</div>
+              </div>
+            </div>
+
+            <div class="vision-panel">
+              <div class="vision-label">Vision Statement</div>
+              <div>
+                Gaming isn't just about winning – it's about creating moments that echo beyond the screen, where every player becomes a storyteller and every timeline turns legendary.
+              </div>
+            </div>
+
+            <div class="vision-panel">
+              <div class="vision-label">Connect With The Founder</div>
+              <div style="font-size:0.8rem; color:var(--text-main);">
+                Tap to reach out, collaborate, or bring MINDRIFT to your next event, studio, or stream.
+              </div>
+              <div class="connect-row mt-6">
+                <div id="connect-youtube" class="connect-card">
+                  <div class="connect-icon">▶</div>
+                  <div class="connect-label">YouTube</div>
+                  <div style="font-size:0.7rem; color:var(--text-soft);">@Yash_verma_2001</div>
+                </div>
+                <div id="connect-email" class="connect-card">
+                  <div class="connect-icon">✉</div>
+                  <div class="connect-label">Email</div>
+                  <div style="font-size:0.7rem; color:var(--text-soft);">yashwantv826@gmail.com</div>
+                </div>
+                <div id="connect-call" class="connect-card">
+                  <div class="connect-icon">☎</div>
+                  <div class="connect-label">Call</div>
+                  <div style="font-size:0.7rem; color:var(--text-soft);">+91 98051 30755</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="investor-panel">
+              <div class="vision-label"> Investor · $50M Confirmed</div>
+              <div class="investor-row">
+                <span class="investor-name">Dhananjay Rathore</span>
+                <span class="investor-amount">$10M</span>
+              </div>
+              <div class="investor-row">
+                <span class="investor-name">Vinayak KA</span>
+                <span class="investor-amount">$25M</span>
+              </div>
+              <div class="investor-row">
+                <span class="investor-name">Lakshya Raj</span>
+                <span class="investor-amount">$10M</span>
+              </div>
+              <div class="investor-row">
+                <span class="investor-name">Bhavika Lodha</span>
+                <span class="investor-amount">$5M</span>
+              </div>
+            </div>
+
+            <div class="cta-footer">
+              Join the journey – help shape a new wave of social deduction storytelling where timelines, trust, and memory all collide.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <div class="bottom-nav-inner">
+        <div class="nav-item active" data-target="home">
+          <div class="nav-pill">
+            <div class="nav-icon">✦</div>
+            <div class="nav-label">Home</div>
+          </div>
+        </div>
+        <div class="nav-item" data-target="game">
+          <div class="nav-pill">
+            <div class="nav-icon">🎮</div>
+            <div class="nav-label">Game</div>
+          </div>
+        </div>
+        <div class="nav-item" data-target="founder">
+          <div class="nav-pill">
+            <div class="nav-icon">★</div>
+            <div class="nav-label">Founder</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast">Room code copied</div>
+
+  <script>
+    // Router logic
+    const navItems = document.querySelectorAll('.nav-item');
+    const screens = {
+      home: document.getElementById('screen-home'),
+      game: document.getElementById('screen-game'),
+      founder: document.getElementById('screen-founder'),
+    };
+
+    function activateTab(target) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[target].classList.add('active');
+
+      navItems.forEach(item => {
+        if (item.getAttribute('data-target') === target) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const target = item.getAttribute('data-target');
+        activateTab(target);
+      });
+    });
+
+    document.getElementById('home-to-game').addEventListener('click', () => {
+      activateTab('game');
+    });
+
+    // Room code generator
+    function generateRoomCode() {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let suffix = '';
+      for (let i = 0; i < 4; i++) {
+        suffix += letters[Math.floor(Math.random() * letters.length)];
+      }
+      return 'MDFT-' + suffix;
+    }
+
+    const roomCodeEl = document.getElementById('room-code');
+    roomCodeEl.textContent = generateRoomCode();
+
+    // Toast logic
+    const toastEl = document.getElementById('toast');
+    let toastTimeout = null;
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('visible');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastEl.classList.remove('visible');
+      }, 2000);
+    }
+
+    // Invite / clipboard simulation
+    document.getElementById('invite-btn').addEventListener('click', async () => {
+      const code = roomCodeEl.textContent.trim();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+          showToast('Room code copied: ' + code);
+        } else {
+          showToast('Room code ready: ' + code);
+        }
+      } catch (e) {
+        showToast('Room code ready: ' + code);
+      }
+    });
+
+    // Founder contact routing
+    document.getElementById('connect-youtube').addEventListener('click', () => {
+      window.open('https://www.youtube.com/@Yash_verma_2001', '_blank', 'noopener');
+    });
+
+    document.getElementById('connect-email').addEventListener('click', () => {
+      window.location.href = 'mailto:yashwantv826@gmail.com?subject=MINDRIFT%20Enquiry';
+    });
+
+    document.getElementById('connect-call').addEventListener('click', () => {
+      window.location.href = 'tel:+919805130755';
+    });
+
+    // Gameplay simulation
+    const phaseLabelEl = document.getElementById('phase-label');
+    const phaseSubtextEl = document.getElementById('phase-subtext');
+    const phaseTimerEl = document.getElementById('phase-timer');
+    const handLabelEl = document.getElementById('hand-label');
+    const cardHandEl = document.getElementById('card-hand');
+    const timelineTrackEl = document.getElementById('timeline-track');
+    const memoryTextareaEl = document.getElementById('memory-textarea');
+    const phaseActionBtn = document.getElementById('phase-action-btn');
+    const rewindBtn = document.getElementById('rewind-btn');
+    const revelationPanel = document.getElementById('revelation-panel');
+    const tagRow = document.getElementById('tag-row');
+    const guessInput = document.getElementById('guess-input');
+    const accusationSelect = document.getElementById('accusation-select');
+    const submitRevelationBtn = document.getElementById('submit-revelation-btn');
+
+    const PHASES = {
+      ANCHOR: 'ANCHOR',
+      ECHO: 'ECHO',
+      REVELATION: 'REVELATION',
+    };
+
+    let currentPhase = PHASES.ANCHOR;
+    let phaseTimer = 60;
+    let timerInterval = null;
+    let rewindUsed = false;
+    let cards = [];
+    let selectedMiniCardId = null;
+    let roundAnchorCardId = null;
+    let memoryIdCounter = 0;
+
+    const anchorPrompts = [
+      { title: 'Crossroads', desc: 'Two shadows parting ways under a fading sun.' },
+      { title: 'First Spark', desc: 'A message that changed everything at midnight.' },
+      { title: 'Fractured Oath', desc: 'A promise kept in silence, never in words.' }
+    ];
+
+    const echoHands = [
+      { title: 'Echo Trail', desc: 'Footsteps dissolving into mist behind you.' },
+      { title: 'Glass Heart', desc: 'A reflection that refuses to look back.' },
+      { title: 'Static Bloom', desc: 'A flower that hums with quiet interference.' }
+    ];
+
+    function createMiniCard(id, title, desc) {
+      const card = document.createElement('div');
+      card.className = 'mini-card';
+      card.dataset.id = id;
+      card.innerHTML = `
+        <div class="mini-card-title">${title}</div>
+        <div class="mini-card-desc">${desc}</div>
+      `;
+      card.addEventListener('click', () => {
+        if (card.classList.contains('disabled')) return;
+        const alreadySelected = card.classList.contains('selected');
+        document.querySelectorAll('.mini-card').forEach(c => c.classList.remove('selected'));
+        if (!alreadySelected) {
+          card.classList.add('selected');
+          selectedMiniCardId = id;
+        } else {
+          selectedMiniCardId = null;
+        }
+      });
+      return card;
+    }
+
+    function renderHandForPhase() {
+      cardHandEl.innerHTML = '';
+      selectedMiniCardId = null;
+      let data = [];
+      if (currentPhase === PHASES.ANCHOR) {
+        data = anchorPrompts;
+        handLabelEl.textContent = 'Anchor · Choose a seed image';
+      } else if (currentPhase === PHASES.ECHO) {
+        data = echoHands;
+        handLabelEl.textContent = 'Echo Cascade · Choose a memory card';
+      } else {
+        handLabelEl.textContent = 'Revelation · Review the timeline';
+      }
+
+      data.forEach((item, index) => {
+        const id = 'card-' + currentPhase + '-' + index;
+        const card = createMiniCard(id, item.title, item.desc);
+        if (currentPhase === PHASES.REVELATION) {
+          card.classList.add('disabled');
+        }
+        cardHandEl.appendChild(card);
+      });
+    }
+
+    function pushCardToTimeline({ role, text, kind }) {
+      const id = 'mem-' + (++memoryIdCounter);
+      const card = { id, role, text, kind };
+      cards.push(card);
+      renderTimeline();
+    }
+
+    function renderTimeline() {
+      timelineTrackEl.innerHTML = '';
+      cards.forEach(card => {
+        const el = document.createElement('div');
+        const classes = ['memory-card'];
+        if (card.kind === 'anchor') classes.push('anchor');
+        if (card.kind === 'static') classes.push('static');
+        if (card.kind === 'real') classes.push('real');
+        el.className = classes.join(' ');
+
+        let roleLabel = 'Player';
+        if (card.role === 'anchor') roleLabel = 'Anchor';
+        else if (card.role === 'bot') roleLabel = 'Echo Bot';
+        else if (card.role === 'you') roleLabel = 'You';
+
+        let tagHtml = '';
+        if (card.kind === 'static') {
+          tagHtml = '<span class="memory-tag memory-tag-static">Static</span>';
+        } else if (card.kind === 'real') {
+          tagHtml = '<span class="memory-tag memory-tag-real">Real</span>';
+        } else if (card.kind === 'anchor') {
+          tagHtml = '<span class="memory-tag memory-tag-anchor">Anchor</span>';
+        }
+
+        el.innerHTML = `
+          <div class="memory-meta">
+            <span>${roleLabel}</span>
+            <span class="memory-role">${card.kind.toUpperCase()}</span>
+          </div>
+          <div class="memory-text">${card.text}</div>
+          ${tagHtml}
+        `;
+        timelineTrackEl.appendChild(el);
+      });
+
+      requestAnimationFrame(() => {
+        timelineTrackEl.scrollLeft = timelineTrackEl.scrollWidth;
+      });
+    }
+
+    function resetRoundState() {
+      currentPhase = PHASES.ANCHOR;
+      phaseTimer = 60;
+      cards = [];
+      memoryIdCounter = 0;
+      roundAnchorCardId = null;
+      selectedMiniCardId = null;
+      revelationPanel.classList.remove('visible');
+      guessInput.value = '';
+      accusationSelect.value = '';
+      memoryTextareaEl.value = '';
+      renderTimeline();
+      renderHandForPhase();
+      updatePhaseUI();
+      startPhaseTimer();
+    }
+
+    function updatePhaseUI() {
+      if (currentPhase === PHASES.ANCHOR) {
+        phaseLabelEl.textContent = 'Phase · Anchor';
+        phaseSubtextEl.textContent = 'Set the cryptic scene. Hint at the trigger – never name it.';
+        phaseTimerEl.textContent = '60s';
+        phaseActionBtn.textContent = 'LOCK ANCHOR MEMORY';
+        memoryTextareaEl.placeholder = 'Describe the opening moment in one haunting, cryptic line...';
+        revelationPanel.classList.remove('visible');
+      } else if (currentPhase === PHASES.ECHO) {
+        phaseLabelEl.textContent = 'Phase · Echo Cascade';
+        phaseSubtextEl.textContent = 'Everyone plays at once. Extend the story or quietly corrupt it.';
+        phaseTimerEl.textContent = '60s';
+        phaseActionBtn.textContent = 'SUBMIT MEMORY';
+        memoryTextareaEl.placeholder = 'Continue the scene – match the emotion or twist it just enough...';
+        revelationPanel.classList.remove('visible');
+      } else if (currentPhase === PHASES.REVELATION) {
+        phaseLabelEl.textContent = 'Phase · Revelation';
+        phaseSubtextEl.textContent = 'Mark Static, protect Real memories, accuse a thief, and name the trigger.';
+        phaseTimerEl.textContent = '60s';
+        phaseActionBtn.textContent = 'NEXT ROUND · NEW TIMELINE';
+        memoryTextareaEl.placeholder = 'Round resolved. Start the next Anchor when you are ready.';
+        revelationPanel.classList.add('visible');
+        buildTagToggles();
+      }
+    }
+
+    function startPhaseTimer() {
+      clearInterval(timerInterval);
+      let targetSeconds = 60;
+      if (currentPhase === PHASES.ECHO) targetSeconds = 60;
+      if (currentPhase === PHASES.REVELATION) targetSeconds = 60;
+      phaseTimer = targetSeconds;
+      phaseTimerEl.textContent = phaseTimer + 's';
+
+      timerInterval = setInterval(() => {
+        phaseTimer -= 1;
+        if (phaseTimer < 0) phaseTimer = 0;
+        phaseTimerEl.textContent = phaseTimer + 's';
+        if (phaseTimer === 0) {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    }
+
+    function advancePhase() {
+      if (currentPhase === PHASES.ANCHOR) {
+        currentPhase = PHASES.ECHO;
+        renderHandForPhase();
+        memoryTextareaEl.value = '';
+        updatePhaseUI();
+        startPhaseTimer();
+        botEchoCascade();
+      } else if (currentPhase === PHASES.ECHO) {
+        currentPhase = PHASES.REVELATION;
+        renderHandForPhase();
+        memoryTextareaEl.value = '';
+        updatePhaseUI();
+        startPhaseTimer();
+      } else if (currentPhase === PHASES.REVELATION) {
+        resetRoundState();
+      }
+    }
+
+    // Bot Echo Cascade simulation
+    function botEchoCascade() {
+      const samples = [
+        { role: 'bot', kind: 'real', text: 'I remember the way the streetlight fractured on the wet asphalt as you walked away.' },
+        { role: 'bot', kind: 'static', text: 'Suddenly, the whole scene rewound, like the universe refused to let us make that choice.' },
+        { role: 'bot', kind: 'real', text: 'Someone laughed at the wrong moment, and the silence after felt like a verdict.' }
+      ];
+
+      let delay = 600;
+      samples.forEach(sample => {
+        setTimeout(() => {
+          pushCardToTimeline(sample);
+        }, delay);
+        delay += 550;
+      });
+    }
+
+    // Rewind logic
+    rewindBtn.addEventListener('click', () => {
+      if (rewindUsed) return;
+      if (cards.length === 0) {
+        showToast('Nothing to rewind yet.');
+        return;
+      }
+      const removed = cards.splice(-3, 3);
+      renderTimeline();
+      rewindUsed = true;
+      rewindBtn.classList.add('used');
+      rewindBtn.textContent = 'REWIND USED';
+      if (removed.length > 0) {
+        showToast('Timeline fractured · last 3 memories rewound.');
+      }
+    });
+
+    // Start game button -> initializes first round
+    document.getElementById('start-game-btn').addEventListener('click', () => {
+      resetRoundState();
+      showToast('Round started · You are the Anchor.');
+    });
+
+    // Phase action button
+    phaseActionBtn.addEventListener('click', () => {
+      if (currentPhase === PHASES.ANCHOR) {
+        if (!selectedMiniCardId || !memoryTextareaEl.value.trim()) {
+          showToast('Choose a card and write your Anchor memory.');
+          return;
+        }
+        const text = memoryTextareaEl.value.trim();
+        pushCardToTimeline({ role: 'anchor', text, kind: 'anchor' });
+        roundAnchorCardId = selectedMiniCardId;
+        advancePhase();
+      } else if (currentPhase === PHASES.ECHO) {
+        if (!selectedMiniCardId || !memoryTextareaEl.value.trim()) {
+          showToast('Choose a memory card and write your echo.');
+          return;
+        }
+        const text = memoryTextareaEl.value.trim();
+        const isStatic = Math.random() < 0.35;
+        pushCardToTimeline({ role: 'you', text, kind: isStatic ? 'static' : 'real' });
+        advancePhase();
+      } else if (currentPhase === PHASES.REVELATION) {
+        advancePhase();
+        showToast('New round · roles may shift, paranoia resets.');
+      }
+    });
+
+    // Revelation tagging
+    function buildTagToggles() {
+      tagRow.innerHTML = '';
+      cards.forEach((card, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'tag-toggle';
+        btn.dataset.index = idx;
+        btn.dataset.state = 'none';
+        btn.innerHTML = `Card ${idx + 1}`;
+        btn.addEventListener('click', () => {
+          let state = btn.dataset.state;
+          if (state === 'none') {
+            state = 'real';
+            btn.dataset.state = 'real';
+            btn.classList.add('active-real');
+            btn.classList.remove('active-static');
+          } else if (state === 'real') {
+            state = 'static';
+            btn.dataset.state = 'static';
+            btn.classList.remove('active-real');
+            btn.classList.add('active-static');
+          } else {
+            state = 'none';
+            btn.dataset.state = 'none';
+            btn.classList.remove('active-real');
+            btn.classList.remove('active-static');
+          }
+        });
+        tagRow.appendChild(btn);
+      });
+    }
+
+    submitRevelationBtn.addEventListener('click', () => {
+      const guess = guessInput.value.trim();
+      const accused = accusationSelect.value;
+      if (!guess) {
+        showToast('Name the hidden trigger before resolving.');
+        return;
+      }
+      if (!accused) {
+        showToast('You must accuse exactly one suspect.');
+        return;
+      }
+      showToast('Trigger: ' + guess + ' · You accused ' + accused + '.');
+    });
+
+    // Initial set-up
+    renderHandForPhase();
+    updatePhaseUI();
+  </script>
+</body>
+</html>
